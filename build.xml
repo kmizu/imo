@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="imo" default="compile" basedir=".">
+  <property environment="env"/>
+  <property name="src"               value="src"/>
+  <property name="src.test"          value="src.test"/>
+  <property name="bin"               value="bin"/>
+  <property name="grammar"           value="grammar"/>
+  <property name="docs"              value="docs"/>
+  <property name="build"             value="build"/>
+  <property name="parser"            value="src/jp/gr/java_conf/mizu/imo/parser"/>
+  <property name="example"           value="example"/>
+	<property name="jar.name"          value="imo.jar"/>
+  <property name="resources"         value="resources"/>
+  <property file="build.properties"/>
+
+  <fileset id="shared" dir=".">
+    <include name="${bin}/**"/>
+    <include name="${example}/**"/>
+    <include name="Install.txt"/>
+    <include name="Readme.txt"/>
+    <include name="license.txt"/>
+  </fileset>
+
+  <target name="grammar">
+    <mkdir dir="${parser}"/>
+    <javacc
+      target="${grammar}/IMoParser.jj"
+      unicodeinput="true"
+      javaunicodeescape="true"
+      outputdirectory="${parser}"
+      javacchome="${javacc.home}"/>
+  </target>
+
+  <target name="compile" depends="grammar">
+    <mkdir dir="${build}"/>
+    <javac srcdir="${src}" destdir="${build}" source="1.5" debug="true"/>
+  </target>
+
+  <!--target name="test" depends="compile">
+  	<javac srcdir="${src.test}" destdir="${build}" source="1.5" debug="true">
+      <classpath location="${junit.path}"/>
+  	</javac>
+  	<junit haltonfailure="yes">
+  	  <classpath>
+  	  	<pathelement path="${build}"/>
+  	  </classpath>
+      <formatter type="plain" usefile="false"/>
+      <batchtest fork="yes">
+        <fileset dir="${src.test}">
+          <include name="**/*Test.java"/>
+          <exclude name="**/AllTests.java"/>
+        </fileset>
+      </batchtest>
+  	</junit>
+    <filelist></filelist>
+  </target -->
+
+  <target name="jar" depends="compile">
+    <jar destfile="${jar.name}" basedir="${build}">
+      <manifest>
+    	  <attribute name="Main-Class" value="jp.gr.java_conf.mizu.imo.IMoMain"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="clean">
+    <delete dir="${build}" />
+    <delete dir="${parser}" />
+  </target>
+</project>
