@@ -13,6 +13,6 @@ case class Environment(id: Symbol, value: Any, next: Option[Environment]) {
     }
     buf.append("]")
 
-    new String(buf)
+    buf.toString()
   }
 }
