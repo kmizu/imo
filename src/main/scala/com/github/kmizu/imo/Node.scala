@@ -21,7 +21,7 @@ case class Return(pos: Pos, exp: Exp) extends Exp
 case class Or(pos: Pos, lhs: Exp, rhs: Exp) extends Exp
 case class Equal(pos: Pos, lhs: Exp, rhs: Exp) extends Exp
 case class NotEqual(pos: Pos, lhs: Exp, rhs: Exp) extends Exp
-case class Int(pos: Pos, value: Int) extends Exp
-case class Str(pos: Pos, value: String) extends Exp
-case class Bool(pos: Pos, value: Boolean) extends Exp
-case class Unit(pos: Pos) extends Exp
+case class IntNode(pos: Pos, value: Int) extends Exp
+case class StrNode(pos: Pos, value: String) extends Exp
+case class BoolNode(pos: Pos, value: Boolean) extends Exp
+case class UnitNode(pos: Pos) extends Exp
