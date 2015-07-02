@@ -34,6 +34,10 @@ class IMoParser() {
       not(p) | failure(msg)
     }
 
+    def app(fun: Exp, arg: Exp): App = App(fun.pos, fun, arg)
+    def app2(fun: Exp, arg1: Exp, arg2: Exp): App = app(app(fun, arg1), arg2)
+
+    lazy val loc: Parser[Pos] = Parser{reader => Success(Pos(reader.pos.line, reader.pos.column), reader)}
     private val any: Parser[Char] = elem(".", c => c != CharSequenceReader.EofCh)
     lazy val END_OF_LINE = chr('\r') ~ chr('\n') | chr('\n') | chr('\r')
     lazy val COMMENT = ("//" | "#!") ~> (not(END_OF_LINE) ~> any).* <~ END_OF_LINE
@@ -45,6 +49,7 @@ class IMoParser() {
     lazy val SLASH = token("/")
     lazy val PERCENT = token("%")
     lazy val DOLLAR = token("$")
+    lazy val BACK_SLASH = token("\\")
     lazy val LT = token("<")
     lazy val GT = token(">")
     lazy val LEQ = token("<=")
@@ -87,6 +92,7 @@ class IMoParser() {
     lazy val K_OR = token("or")
     lazy val K_RETURN = token("return")
     lazy val K_STRING = token("string")
+    lazy val K_UNIT = token("unit")
     lazy val K_TRUE = token("true")
     lazy val K_FALSE = token("false")
 
@@ -103,49 +109,110 @@ class IMoParser() {
       )
     lazy val ID: Parser[String] = """[a-zA-Z_][a-zA-Z_0-9]*""".r
 
-    lazy val program: Parser[Prog] = ???
+    lazy val program: Parser[Prog] = function.+ ^^ {funs => Prog(Pos(1, 1), funs)}
 
-    lazy val function: Parser[Fun] = ???
+    lazy val function: Parser[Fun] = loc ~ (K_DEF ~> ID) ~ (LPAREN ~> formal_parameter.* <~ RPAREN) ~ (COLON ~> tpe <~  ASSIGN) ~ expression ^^ {
+      case pos ~ id ~ args ~ ret ~ body => Fun(pos, Symbol(id), args, ret, body)
+    }
 
-    lazy val tpe: Parser[Type] = ???
+    lazy val tpe: Parser[Type] = basic_type ~ (RARROW ~> tpe).? ^^ {
+      case ltype ~ None => ltype
+      case ltype ~ Some(rtype) => FUNCTION_TYPE(ltype, rtype)
+    }
 
-    lazy val basic_type: Parser[Type] = ???
+    lazy val basic_type: Parser[Type] = {
+      K_BOOL ^^ {_ => BOOL_TYPE} |
+      K_INT ^^ {_ => INT_TYPE} |
+      K_STRING ^^ {_ => STRING_TYPE} |
+      K_UNIT ^^ {_ => UNIT_TYPE} |
+      K_IO ~> (LPAREN ~> tpe <~ RPAREN) ^^ {tp => IO_TYPE(tp)}
+      LPAREN ~> tpe <~ RPAREN
+    }
 
-    lazy val formal_parameter: Parser[Arg] = ???
+    lazy val formal_parameter: Parser[Arg] = loc ~ (ID <~ COLON) ~ tpe ^^ { case pos ~ name ~ tp => Arg(pos, Symbol(name), tp) }
 
-    lazy val expression: Parser[Exp] = ???
+    lazy val expression: Parser[Exp] = (
+      let_expression |
+      if_expression |
+      bindable |
+      anonymous_function |
+      (loc <~ K_RETURN) ~ expression ^^ { case pos ~ exp => Return(pos, exp) }
+    )
 
-    lazy val anonymous_function: Parser[Exp] = ???
+    lazy val anonymous_function: Parser[Exp] = (loc <~ BACK_SLASH) ~ (formal_parameter <~ DOT) ~ expression ^^ {
+      case pos ~ arg ~ exp => AnonFun(pos, arg, exp)
+    }
 
-    lazy val bindable: Parser[Exp] = ???
+    lazy val bindable: Parser[Exp] = chainl1(application,
+      BIND ^^ {_ => (l: Exp, r: Exp) => Bind(l.pos, l, r)} |
+      CONCAT ^^ {_ => (l: Exp, r: Exp) => Concat(l.pos, l, r)}
+    )
 
-    lazy val application: Parser[Exp] = ???
+    lazy val application: Parser[Exp] = logical_or ~ (DOLLAR ~> application) ^^ { case l ~ r => App(l.pos, l, r) }
 
-    lazy val logical_or: Parser[Exp] = ???
+    lazy val logical_or: Parser[Exp] = chainl1(logical_and,
+      K_OR ^^ {_ => (l: Exp, r: Exp) => Or(l.pos, l, r)}
+    )
 
-    lazy val logical_and: Parser[Exp] = ???
+    lazy val logical_and: Parser[Exp] = chainl1(equal,
+      K_AND ^^ {_ => (l: Exp, r: Exp) => And(l.pos, l, r)}
+    )
 
-    lazy val equal: Parser[Exp] = ???
+    lazy val equal: Parser[Exp] = chainl1(comparative,
+      EQ ^^ {_ => (l: Exp, r: Exp) => Equal(l.pos, l, r)} |
+      NOTEQ ^^ {_ => (l: Exp, r: Exp) => NotEqual(l.pos, l, r)}
+    )
 
-    lazy val comparative: Parser[Exp] = ???
+    lazy val comparative: Parser[Exp] = chainl1(additive,
+      LEQ ^^ {_ => (l: Exp, r: Exp) => app2(Ref(l.pos, Symbol("<=")), l, r) } |
+      GEQ ^^ {_ => (l: Exp, r: Exp) => app2(Ref(l.pos, Symbol(">=")), l, r) } |
+      LT ^^ {_ => (l: Exp, r: Exp) =>  app2(Ref(l.pos, Symbol("<")), l, r) } |
+      GT ^^ {_ => (l: Exp, r: Exp) =>  app2(Ref(l.pos, Symbol(">")), l, r) }
+    )
 
-    lazy val additive: Parser[Exp] = ???
+    lazy val additive: Parser[Exp] = chainl1(unary_prefix,
+      PLUS ^^ {_ => (l: Exp, r: Exp) => app2(Ref(l.pos, Symbol("+")), l, r) } |
+      MINUS ^^ {_ => (l: Exp, r: Exp) => app2(Ref(l.pos, Symbol("-")), l, r) }
+    )
 
-    lazy val unary_prefix: Parser[Exp] = ???
+    lazy val unary_prefix: Parser[Exp] = (
+      PLUS ~> unary_prefix ^^ {e => app(Ref(e.pos, Symbol("u+")), e) } |
+      MINUS ~> unary_prefix ^^ {e => app(Ref(e.pos, Symbol("u-")), e)} |
+      K_NOT ~> unary_prefix ^^ {e => app(Ref(e.pos, Symbol("not")), e)} |
+      multitive
+    )
 
-    lazy val primary_suffix: Parser[Exp] = ???
+    lazy val multitive: Parser[Exp] = chainl1(primary_suffix,
+      ASTER ^^ {_ => (l: Exp, r: Exp) => app2(Ref(l.pos, Symbol("*")), l, r) } |
+      SLASH ^^ {_ => (l: Exp, r: Exp) => app2(Ref(l.pos, Symbol("/")), l, r) } |
+      PERCENT ^^ {_ => (l: Exp, r: Exp) => app2(Ref(l.pos, Symbol("%")), l, r) }
+    )
 
-    lazy val primary: Parser[Exp] = ???
+    lazy val primary_suffix: Parser[Exp] = primary ~ primary.* ^^ { case a ~ as => as.foldLeft(a){(r, e) => app(r, e)}}
 
-    lazy val int_literal: Parser[Exp] = ???
+    lazy val primary: Parser[Exp] = (
+      loc ~ ID ^^ { case pos ~ id => Ref(pos, Symbol(id))} |
+      int_literal |
+      string_literal |
+      bool_literal |
+      (LPAREN ~> expression <~ RPAREN)
+    )
 
-    lazy val bool_literal: Parser[Exp] = ???
+    lazy val int_literal: Parser[Exp] = loc ~ INTEGER ^^ { case pos ~ value => IntNode(pos, value.toInt) }
 
-    lazy val bind: Parser[Def] = ???
+    lazy val bool_literal: Parser[Exp] = loc <~ K_TRUE ^^ { case pos => BoolNode(pos, true)} | loc <~ K_FALSE ^^ { case pos => BoolNode(pos, false) }
 
-    lazy val let_expression: Parser[Exp] = ???
+    lazy val string_literal: Parser[Exp] = loc ~ STRING ^^ { case pos ~ value => StrNode(pos, value) }
 
-    lazy val if_expression: Parser[Exp] = ???
+    lazy val bind: Parser[Def] = loc ~ (ID <~ ASSIGN) ~ expression ^^ { case pos ~ id ~ exp => Def(pos, Symbol(id), exp) }
+
+    lazy val let_expression: Parser[Exp] = (loc <~ K_LET) ~ bind ~ (COMMA ~> bind).* ~ (K_IN ~> expression) ^^ {
+      case pos ~ b ~ bs ~ exp => Let(pos, b::bs, exp)
+    }
+
+    lazy val if_expression: Parser[Exp] = (loc <~ K_IF) ~ (LPAREN ~> expression <~ RPAREN) ~ expression ~ (K_ELSE ~> expression) ^^ {
+      case pos ~ cond ~ thenExp ~ elseExp => If(pos, cond, thenExp, elseExp)
+    }
   }
 
   /**
