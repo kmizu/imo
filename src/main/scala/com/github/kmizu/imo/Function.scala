@@ -1,5 +1,5 @@
 package com.github.kmizu.imo
 
-trait Function[-A, +B] {
-  def apply(arg: A): B
+trait Function {
+  def apply(arg: Any): Any
 }
