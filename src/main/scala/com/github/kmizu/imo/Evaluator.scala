@@ -127,7 +127,8 @@ class Evaluator() {
     }
     val main = env.lookup(Symbol("main")).get.asInstanceOf[UserFunction]
     val toplevel = env.updated(main.args(0), commandLine)
-    eval(main.exp, toplevel)
+    val action = eval(main.exp, toplevel)
+    if(action.isInstanceOf[Action]) action.asInstanceOf[Action].perform() else action
   }
 
   def eval(exp: Exp, env: Environment): Any = exp match {
