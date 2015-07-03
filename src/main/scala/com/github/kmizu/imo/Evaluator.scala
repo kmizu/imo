@@ -119,8 +119,9 @@ class Evaluator() {
     }
     var e = Option(env)
     while(e != None) {
-      if(e.get.isInstanceOf[UserFunction]) {
-        e.get.asInstanceOf[UserFunction].env = env
+      val value = e.get.value
+      if(value.isInstanceOf[UserFunction]) {
+        value.asInstanceOf[UserFunction].env = env
       }
       e = e.get.next
     }
@@ -129,5 +130,29 @@ class Evaluator() {
     eval(main.exp, toplevel)
   }
 
-  def eval(exp: Exp, env: Environment): Any = ???
+  def eval(exp: Exp, env: Environment): Any = exp match {
+    case Ref(_, id) =>
+      env.lookup(id) match {
+        case Some(value) => value
+        case None => sys.error(s"variable ${id} not found")
+      }
+    case If(_, cond, lhs, rhs) =>
+      if(eval(cond, env).asInstanceOf[Boolean]) eval(lhs, env) else eval(rhs, env)
+    case Equal(_, lhs, rhs) =>
+      eval(lhs, env) == eval(rhs, env)
+    case NotEqual(_, lhs, rhs) =>
+      eval(lhs, env) != eval(rhs, env)
+    case And(_, lhs, rhs) =>
+      eval(lhs, env).asInstanceOf[Boolean] && eval(rhs, env).asInstanceOf[Boolean]
+    case Or(_, lhs, rhs) =>
+      eval(lhs, env).asInstanceOf[Boolean] || eval(rhs, env).asInstanceOf[Boolean]
+    case BoolNode(_, value) =>
+      value
+    case StrNode(_, value) =>
+      value
+    case IntNode(_, value) =>
+      value
+    case UnitNode(_) =>
+      ()
+  }
 }

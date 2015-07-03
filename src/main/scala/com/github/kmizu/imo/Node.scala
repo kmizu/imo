@@ -1,9 +1,9 @@
 package com.github.kmizu.imo
 
-abstract class Node {
+sealed abstract class Node {
   val pos: Pos
 }
-abstract class Exp extends Node
+sealed abstract class Exp extends Node
 
 case class Prog(pos: Pos, funs: List[Fun]) extends Node
 case class Def(pos: Pos, id: Symbol, exp: Exp) extends Node
