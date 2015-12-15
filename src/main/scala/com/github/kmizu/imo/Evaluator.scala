@@ -134,6 +134,44 @@ class Evaluator() {
   }
 
   def eval(exp: Exp, env: Environment): Any = exp match {
+    case Bind(_, lhs, rhs) =>
+      val lval = eval(lhs, env)
+      val rval = eval(rhs, env)
+      new Action {
+        override def perform(): Any = {
+          val arg = lval.asInstanceOf[Action].perform()
+          apply(rval.asInstanceOf[UserFunction], arg).asInstanceOf[Action].perform()
+        }
+      }
+    case App(_, tfun, targ) =>
+      val fun = eval(tfun, env)
+      val arg = eval(targ, env)
+      fun match {
+        case fun:NativeFunction => fun.apply(arg)
+        case _ => apply(fun.asInstanceOf[UserFunction], arg)
+      }
+    case Return(_, exp) =>
+      val lval = eval(exp, env)
+      new Action {
+        override def perform(): Any = lval
+      }
+    case AnonFun(_, arg, exp) =>
+      UserFunction(List(arg.id), exp, env)
+    case Concat(_, lhs, rhs) =>
+      val lval = eval(lhs, env)
+      val rval = eval(rhs, env)
+      new Action {
+        override def perform(): Any = {
+          val arg = lval.asInstanceOf[Action].perform()
+          rval.asInstanceOf[Action].perform()
+        }
+      }
+    case Let(_, defs, exp) =>
+      var local = env
+      for(aDef <- defs) {
+        local = local.updated(aDef.id, eval(aDef.exp, env))
+      }
+      eval(exp, local)
     case Ref(_, id) =>
       env.lookup(id) match {
         case Some(value) => value
@@ -157,5 +195,14 @@ class Evaluator() {
       value
     case UnitNode(_) =>
       ()
+  }
+
+  private def apply(uf: UserFunction, arg: Any): Any = {
+    val local = Environment(uf.args(0), arg, Some(uf.env))
+    if (uf.args.size == 1) {
+      eval(uf.exp, local)
+    } else {
+      UserFunction(uf.args.slice(1, uf.args.size), uf.exp, local)
+    }
   }
 }
