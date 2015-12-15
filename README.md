@@ -24,18 +24,18 @@
     Example:
       def foo(x :int) :int = x
 ```
-  * Expression
-    * x op y //binary operator
-      Example: x + y
-    * op x //unary operator
-      Example: not true
-    * f x //function application
-      println "foo"
-    * let var_name = exp in body
-      let x = 1 in x
+* Expression
+  * x op y //binary operator
+    Example: x + y
+  * op x //unary operator
+    Example: not true
+  * f x //function application
+    println "foo"
+  * let var_name = exp in body
+    let x = 1 in x
 * Execution Model
-  * An Execution starts from main.  The type of main is assumed
-	  to io('a), where 'a is arbitrary type.
+  * An execution starts from main.  The type of main is assumed
+    to io('a), where 'a is arbitrary type.
 * Builtin Operators Constructing IO Objects.
 ```
   x >>= y :: io('a) -> (a -> io('b)) -> io('b)
