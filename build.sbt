@@ -2,17 +2,17 @@ organization := "com.github.kmizu"
 
 name := "imo"
 
-version := "0.0.1"
+version := "0.1-SNAPSHOT"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.12.1"
 
 assemblyJarName in assembly := "imo.jar"
 
 mainClass in assembly := Some("com.github.kmizu.imo.Main")
 
 libraryDependencies ++= Seq(
-  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.3",
-  "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test"
+  "org.scala-lang.modules" %% "scala-parser-combinators" % "1.0.4",
+  "org.scalatest" %% "scalatest" % "3.0.0" % "test"
 )
 
 pomExtra := (
@@ -37,7 +37,8 @@ pomExtra := (
   </developers>
 )
 
-publishTo <<= version { v =>
+publishTo := {
+  val v = version.value
   val nexus = "https://oss.sonatype.org/"
   if (v.endsWith("-SNAPSHOT"))
     Some("snapshots" at nexus + "content/repositories/snapshots")
