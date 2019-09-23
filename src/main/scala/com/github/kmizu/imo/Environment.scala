@@ -1,15 +1,15 @@
 package com.github.kmizu.imo
 
-case class Environment(id: Symbol, value: Any, next: Option[Environment]) {
-  def lookup(name: Symbol): Option[Any] = {
+case class Environment(id: String, value: Any, next: Option[Environment]) {
+  def lookup(name: String): Option[Any] = {
     if(name == id) {
       Some(value)
     } else {
-      next.flatMap{e => e.lookup(e.id)}
+      next.flatMap{e => e.lookup(name)}
     }
   }
 
-  def updated(newId: Symbol, newValue: Any): Environment = {
+  def updated(newId: String, newValue: Any): Environment = {
     Environment(newId, newValue, Some(this))
   }
 

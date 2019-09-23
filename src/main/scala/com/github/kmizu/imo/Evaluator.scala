@@ -2,12 +2,12 @@ package com.github.kmizu.imo
 
 import java.util.Scanner
 
-class Evaluator() {
+object Evaluator {
   private[this] lazy val scanner = new Scanner(System.in)
 
   private[this] lazy val builtinEnvironment: Environment = {
     Environment(
-      Symbol("+"),
+      "+",
       new NativeFunction {
         def apply(lhs: Any): Any = new NativeFunction {
           def apply(rhs: Any): Any = lhs.asInstanceOf[Int] + rhs.asInstanceOf[Int]
@@ -15,73 +15,73 @@ class Evaluator() {
       },
       None
     ).updated(
-      Symbol("-"),
+      "-",
       new NativeFunction {
         def apply(lhs: Any): Any = new NativeFunction {
           def apply(rhs: Any): Any = lhs.asInstanceOf[Int] - rhs.asInstanceOf[Int]
         }
       }
     ).updated(
-      Symbol("*"),
+      "*",
       new NativeFunction {
         def apply(lhs: Any): Any = new NativeFunction {
           def apply(rhs: Any): Any = lhs.asInstanceOf[Int] * rhs.asInstanceOf[Int]
         }
       }
     ).updated(
-      Symbol("/"),
+      "/",
       new NativeFunction {
         def apply(lhs: Any): Any = new NativeFunction {
           def apply(rhs: Any): Any = lhs.asInstanceOf[Int] / rhs.asInstanceOf[Int]
         }
       }
     ).updated(
-      Symbol("%"),
+      "%",
       new NativeFunction {
         def apply(lhs: Any): Any = new NativeFunction {
           def apply(rhs: Any): Any = lhs.asInstanceOf[Int] % rhs.asInstanceOf[Int]
         }
       }
     ).updated(
-      Symbol("<"),
+      "<",
       new NativeFunction {
         def apply(lhs: Any): Any = new NativeFunction {
           def apply(rhs: Any): Any = lhs.asInstanceOf[Int] < rhs.asInstanceOf[Int]
         }
       }
     ).updated(
-      Symbol(">"),
+      ">",
       new NativeFunction {
         def apply(lhs: Any): Any = new NativeFunction {
           def apply(rhs: Any): Any = lhs.asInstanceOf[Int] > rhs.asInstanceOf[Int]
         }
       }
     ).updated(
-      Symbol("<="),
+      "<=",
       new NativeFunction {
         def apply(lhs: Any): Any = new NativeFunction {
           def apply(rhs: Any): Any = lhs.asInstanceOf[Int] <= rhs.asInstanceOf[Int]
         }
       }
     ).updated(
-      Symbol(">="),
+      ">=",
       new NativeFunction {
         def apply(lhs: Any): Any = new NativeFunction {
           def apply(rhs: Any): Any = lhs.asInstanceOf[Int] >= rhs.asInstanceOf[Int]
         }
       }
     ).updated(
-      Symbol("parse_int"),
+      "parse_int",
       new NativeFunction {
         override def apply(arg: Any): Any = arg.asInstanceOf[String].toInt
       }
     ).updated(
-      Symbol("read_line"),
+      "read_line",
       new Action {
         def perform(): Any = scanner.nextLine()
       }
     ).updated(
-      Symbol("println"),
+      "println",
       new NativeFunction {
         override def apply(arg: Any): Any = new Action {
           override def perform(): Any = {
@@ -91,7 +91,7 @@ class Evaluator() {
         }
       }
     ).updated(
-      Symbol("print"),
+      "print",
       new NativeFunction {
         override def apply(arg: Any): Any = new Action {
           override def perform(): Any = {
@@ -101,7 +101,7 @@ class Evaluator() {
         }
       }
     ).updated(
-      Symbol("print_number"),
+      "print_number",
       new NativeFunction {
         override def apply(arg: Any): Any = new Action {
           override def perform(): Any = {
@@ -114,7 +114,7 @@ class Evaluator() {
   }
 
   def eval(node: Prog, commandLine: String): Any = {
-    val env = node.funs.foldLeft(builtinEnvironment){(e, f) =>
+    val env = node.funs.foldLeft(builtinEnvironment){(e: Environment, f) =>
       e.updated(f.id, UserFunction(f.args.map{_.id}, f.exp, null))
     }
     var e = Option(env)
@@ -125,7 +125,7 @@ class Evaluator() {
       }
       e = e.get.next
     }
-    val main = env.lookup(Symbol("main")).get.asInstanceOf[UserFunction]
+    val main = env.lookup("main").get.asInstanceOf[UserFunction]
     val toplevel = env.updated(main.args(0), commandLine)
     eval(main.exp, toplevel) match {
       case action:Action => action.perform()
@@ -169,12 +169,13 @@ class Evaluator() {
     case Let(_, defs, exp) =>
       var local = env
       for(aDef <- defs) {
-        local = local.updated(aDef.id, eval(aDef.exp, env))
+        local = local.updated(aDef.id, eval(aDef.exp, local))
       }
       eval(exp, local)
     case Ref(_, id) =>
       env.lookup(id) match {
-        case Some(value) => value
+        case Some(value) =>
+          value
         case None => sys.error(s"variable ${id} not found")
       }
     case If(_, cond, lhs, rhs) =>

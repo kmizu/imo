@@ -6,11 +6,11 @@ sealed abstract class Node {
 sealed abstract class Exp extends Node
 
 case class Prog(pos: Pos, funs: List[Fun]) extends Node
-case class Def(pos: Pos, id: Symbol, exp: Exp) extends Node
-case class Arg(pos: Pos, id: Symbol, tpe: Type) extends Node
-case class Fun(pos: Pos, id: Symbol, args: List[Arg], ret: Type, exp: Exp) extends Node
+case class Def(pos: Pos, id: String, exp: Exp) extends Node
+case class Arg(pos: Pos, id: String, tpe: Type) extends Node
+case class Fun(pos: Pos, id: String, args: List[Arg], ret: Type, exp: Exp) extends Node
 case class AnonFun(pos: Pos, arg: Arg, exp: Exp) extends Exp
-case class Ref(pos: Pos, id: Symbol) extends Exp
+case class Ref(pos: Pos, id: String) extends Exp
 case class App(pos: Pos, fn: Exp, arg: Exp) extends Exp
 case class Let(pos: Pos, defs: List[Def], exp: Exp) extends Exp
 case class If(pos: Pos, cond: Exp, lhs: Exp, rhs: Exp) extends Exp

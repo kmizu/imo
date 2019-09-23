@@ -1,6 +1,8 @@
 def fact(n :int) :int = if(n == 0 or n == 1) 1 else n * (fact (n - 1))
+  ;
 
 def main(arg :string) :io(unit) =
   print "please input number: " >> read_line >>= (\line :string.
     let n = parse_int line in print_number (fact n) >> main(arg)
   )
+  ;

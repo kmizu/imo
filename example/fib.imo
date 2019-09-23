@@ -1,10 +1,10 @@
-def sub(x :int y:int) :int = x - y
+def sub(x :int y:int) :int = x - y;
 
 def fib(n :int) :int = if(n == 0 or n == 1) 1 else (let sub_n = sub n in 
-  fib (sub_n 1) + fib(sub_n 2)
-)
+  fib (sub_n 1) + fib (sub_n 2)
+);
 
-def main(arg :string) :io(unit) = 
+def main(arg :string) :io(unit) =
   print "please input number: " >> read_line >>= (\line :string.
     let n = parse_int line in print_number (fib n) >> main(arg)
-  )
+  );

@@ -16,7 +16,7 @@ case object UNIT_TYPE extends Type {
 case object ERROR_TYPE extends Type {
   override def toString: String = "error"
 }
-case class TYPE_VARIABLE(id: Symbol) {
+case class TYPE_VARIABLE(id: String) extends Type {
   override def toString: String = s"'${id}"
 }
 case class IO_TYPE(tpe: Type) extends Type {
